@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Items for sale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2EE; --surface:#FFFFFF; --ink:#17231C; --muted:#55645B; --line:#D3DBD5;
+  --pine:#2E5B45; --pine-ink:#FFFFFF; --pine-soft:#DDE9E1;
+  --tag:#F2C14E; --tag-ink:#2A2208; --sold:#B3261E; --pending:#8A5A00; --pending-bg:#FBEFD2;
+  --danger:#B3261E;
+  --display:"Bitter", Georgia, "Times New Roman", serif;
+  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#101713; --surface:#18221C; --ink:#E6EDE8; --muted:#9DB0A4; --line:#2C3A31;
+    --pine:#6FB08E; --pine-ink:#0E1A13; --pine-soft:#203129;
+    --tag:#E9B949; --tag-ink:#231B05; --sold:#FF8A80; --pending:#F0B429; --pending-bg:#2E2510;
+    --danger:#FF8A80;
+    color-scheme: dark;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--body)}
+img{max-width:100%;display:block}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--tag);outline-offset:2px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+
+/* Header */
+header.sale{border-top:8px solid var(--pine);padding:28px 0 18px}
+header.sale h1{font:800 clamp(2rem,6vw,3.2rem)/1.05 var(--display);margin:0 0 10px;letter-spacing:-.01em;max-width:18ch}
+header.sale .intro{margin:0 0 16px;color:var(--muted);max-width:60ch}
+.facts{display:grid;gap:10px 28px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:0;padding:16px 0 0;border-top:1px solid var(--line)}
+.facts div{min-width:0}
+.facts dt{font-weight:700;font-size:.9rem;color:var(--pine)}
+.facts dd{margin:2px 0 0;white-space:pre-line}
+
+/* Filter */
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 14px}
+.count{color:var(--muted);font-size:.95rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--surface);padding:3px}
+.seg button{border:0;background:none;padding:7px 16px;border-radius:999px;cursor:pointer;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--pine);color:var(--pine-ink)}
+
+/* Grid */
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));padding-bottom:110px}
+.card{display:flex;flex-direction:column;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0;cursor:pointer;overflow:hidden}
+.card:hover .t{text-decoration:underline}
+.ph{position:relative;aspect-ratio:4/3;background:var(--pine-soft);overflow:hidden}
+.ph img{width:100%;height:100%;object-fit:cover}
+.ph .none{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:.9rem}
+.tag{position:absolute;left:12px;top:12px;background:var(--tag);color:var(--tag-ink);font:800 1.05rem/1 var(--display);padding:8px 12px 8px 22px;border-radius:3px 6px 6px 3px;transform:rotate(-3deg);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.tag::before{content:"";position:absolute;left:8px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--surface);box-shadow:inset 0 1px 1px rgba(0,0,0,.3)}
+.pill{position:absolute;right:10px;bottom:10px;background:var(--pending-bg);color:var(--pending);font-weight:700;font-size:.85rem;padding:4px 10px;border-radius:999px}
+.stamp{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.35)}
+@media (prefers-color-scheme: dark){.stamp{background:rgba(0,0,0,.35)}}
+.stamp span{font:800 2.2rem/1 var(--display);color:var(--sold);border:4px solid var(--sold);padding:6px 18px;border-radius:6px;transform:rotate(-12deg);letter-spacing:.08em;background:var(--surface)}
+.card.s-sold img{filter:grayscale(.8)}
+.body{padding:12px 14px 16px;display:flex;flex-direction:column;gap:4px}
+.t{font:600 1.15rem/1.25 var(--display)}
+.d{color:var(--muted);font-size:.95rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.edit-hint{display:none;margin-top:6px;font-weight:700;color:var(--pine);font-size:.9rem}
+body.editing .edit-hint{display:block}
+.empty{grid-column:1/-1;border:2px dashed var(--line);border-radius:10px;padding:40px 20px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);font:600 1.2rem var(--display);margin-bottom:6px}
+
+/* Contact bar */
+.contactbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;justify-content:center;z-index:5}
+.contactbar a{flex:1;max-width:260px}
+body.editing .contactbar{display:none}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:700;text-decoration:none;cursor:pointer;color:var(--ink)}
+.btn.primary{background:var(--pine);border-color:var(--pine);color:var(--pine-ink)}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:none}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.small{min-height:38px;padding:0 12px;font-size:.92rem}
+
+/* Editor bar */
+.editbar{display:none;position:sticky;top:0;z-index:6;background:var(--pine);color:var(--pine-ink)}
+body.editing .editbar{display:block}
+.editbar .wrap{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:10px;padding-bottom:10px}
+.editbar strong{margin-right:auto;font-family:var(--display)}
+.editbar .btn{background:transparent;color:var(--pine-ink);border-color:color-mix(in srgb,var(--pine-ink) 45%,transparent)}
+.editbar .btn.go{background:var(--tag);color:var(--tag-ink);border-color:var(--tag)}
+.banner{display:none;background:var(--pending-bg);color:var(--ink);border-bottom:1px solid var(--line)}
+.banner.show{display:block}
+.banner .wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding-top:8px;padding-bottom:8px;font-size:.95rem}
+
+/* Dialogs */
+dialog{border:0;padding:0;border-radius:12px;background:var(--surface);color:var(--ink);width:min(640px,calc(100vw - 20px));max-height:calc(100dvh - 20px)}
+dialog::backdrop{background:rgba(10,20,14,.6)}
+.dlg{display:flex;flex-direction:column;max-height:calc(100dvh - 20px)}
+.dlg-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.dlg-head h2{margin:0;font:700 1.3rem var(--display)}
+.x{border:0;background:none;font-size:1.8rem;line-height:1;width:44px;height:44px;cursor:pointer;color:var(--muted);border-radius:8px}
+.dlg-body{padding:16px;overflow:auto}
+.dlg-foot{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+.dlg-foot .spacer{margin-right:auto}
+
+.gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:6px;border-radius:8px;background:var(--pine-soft)}
+.gallery img{flex:0 0 100%;scroll-snap-align:center;max-height:62dvh;object-fit:contain}
+.swipe{color:var(--muted);font-size:.85rem;margin:6px 0 0}
+.detail-price{font:800 1.6rem var(--display);margin:14px 0 2px}
+.detail-status{font-weight:700}
+.detail-status.sold{color:var(--sold)} .detail-status.pending{color:var(--pending)} .detail-status.available{color:var(--pine)}
+.detail-desc{white-space:pre-line;margin:10px 0 0}
+.detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.detail-actions .btn{flex:1;min-width:150px}
+
+/* Forms */
+.field{display:block;margin:0 0 16px}
+.field > span{display:block;font-weight:700;margin-bottom:6px}
+.field small{display:block;color:var(--muted);font-size:.85rem;margin-top:4px}
+input[type=text],input[type=tel],input[type=number],input[type=url],input[type=password],textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);min-height:46px}
+textarea{min-height:96px;resize:vertical}
+.check{display:flex;align-items:center;gap:10px;font-weight:600;margin:-6px 0 16px}
+.check input{width:22px;height:22px;accent-color:var(--pine)}
+.radios{display:flex;flex-wrap:wrap;gap:8px}
+.radios label{flex:1;min-width:110px}
+.radios input{position:absolute;opacity:0}
+.radios span{display:block;text-align:center;padding:10px;border:1px solid var(--line);border-radius:8px;font-weight:600;cursor:pointer}
+.radios input:checked + span{background:var(--pine);border-color:var(--pine);color:var(--pine-ink)}
+.radios input:focus-visible + span{outline:3px solid var(--tag);outline-offset:2px}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.thumb{position:relative;width:88px;height:88px;border-radius:6px;overflow:hidden;border:2px solid var(--line);padding:0;background:none;cursor:pointer}
+.thumb.cover{border-color:var(--tag)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .rm{position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:1rem;line-height:1;cursor:pointer}
+.thumb .cv{position:absolute;left:0;right:0;bottom:0;background:var(--tag);color:var(--tag-ink);font-size:.72rem;font-weight:700;text-align:center}
+.photo-pick{display:flex;flex-wrap:wrap;gap:8px}
+.photo-pick input{display:none}
+.note{background:var(--pine-soft);border-radius:8px;padding:12px 14px;font-size:.92rem;margin:0 0 16px}
+.note p{margin:0 0 6px} .note p:last-child{margin:0}
+.qrbox{display:grid;place-items:center;padding:16px;background:#fff;border-radius:8px;margin-bottom:12px}
+.qrbox img,.qrbox canvas{width:220px;height:220px}
+
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:100;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
+
+/* Printable sign */
+#printSign{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  body > *:not(#printSign){display:none !important}
+  #printSign{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:20px;font-family:var(--body);color:#000}
+  #printSign h1{font:800 54pt/1.05 var(--display);margin:0}
+  #printSign .sub{font-size:20pt;margin:0}
+  #printSign .qr img,#printSign .qr canvas{width:4.2in;height:4.2in}
+  #printSign .call{font:700 26pt var(--display);margin:0}
+  #printSign .url{font-size:12pt;color:#333;word-break:break-all;margin:0}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;scroll-behavior:auto !important}}
+</style>
+</head>
+<body>
+
+
+<div class="editbar" role="region" aria-label="Editor">
+  <div class="wrap">
+    <strong>Editing your sale</strong>
+    <button class="btn small" id="bAdd" type="button">+ Add item</button>
+    <button class="btn small" id="bInfo" type="button">Sale info</button>
+    <button class="btn small" id="bQR" type="button">QR sign</button>
+    <button class="btn small go" id="bPublish" type="button">Publish</button>
+  </div>
+</div>
+<div class="banner" id="banner">
+  <div class="wrap">
+    <span id="bannerText">You have changes that aren't published yet. They're saved on this device.</span>
+    <button class="btn small danger" id="bDiscard" type="button">Discard changes</button>
+  </div>
+</div>
+
+<header class="sale">
+  <div class="wrap">
+    <h1 id="hTitle">Items for sale</h1>
+    <p class="intro" id="hIntro"></p>
+    <dl class="facts" id="facts"></dl>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="toolbar">
+    <span class="count" id="count"></span>
+    <div class="seg" role="group" aria-label="Show">
+      <button type="button" data-filter="all" aria-pressed="true">All items</button>
+      <button type="button" data-filter="available" aria-pressed="false">Still available</button>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+<footer class="foot"><div class="wrap" id="updated"></div></footer>
+
+<nav class="contactbar" id="contactbar" aria-label="Contact" hidden>
+  <a class="btn primary" id="cbText" href="#">Text us</a>
+  <a class="btn" id="cbCall" href="#">Call</a>
+</nav>
+
+<!-- Item detail (public) -->
+<dialog id="dDetail" aria-labelledby="ddTitle">
+  <div class="dlg">
+    <div class="dlg-head"><h2 id="ddTitle"></h2><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="dlg-body" id="ddBody"></div>
+  </div>
+</dialog>
+
+<!-- Item editor -->
+<dialog id="dItem" aria-labelledby="diTitle">
+  <form class="dlg" id="fItem" method="dialog">
+    <div class="dlg-head"><h2 id="diTitle">Add item</h2><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="dlg-body">
+      <div class="field"><span>Photos</span>
+        <div class="thumbs" id="thumbs"></div>
+        <div class="photo-pick">
+          <label class="btn small"><input type="file" accept="image/*" capture="environment" id="pCamera">Take photo</label>
+          <label class="btn small"><input type="file" accept="image/*" multiple id="pLibrary">Choose photos</label>
+        </div>
+        <small>The first photo is the cover. Tap a photo to make it the cover.</small>
+      </div>
+      <label class="field"><span>Item name</span><input type="text" id="iTitle" required maxlength="80" placeholder="Oak dining table with 6 chairs"></label>
+      <label class="field"><span>Description</span><textarea id="iDesc" maxlength="1500" placeholder="Size, condition, age, anything a buyer should know"></textarea></label>
+      <label class="field"><span>Price ($)</span><input type="number" id="iPrice" min="0" step="1" inputmode="numeric" placeholder="Leave blank for make an offer"></label>
+      <label class="check"><input type="checkbox" id="iOffer"> Open to offers</label>
+      <div class="field"><span>Status</span>
+        <div class="radios">
+          <label><input type="radio" name="iStatus" value="available" checked><span>Available</span></label>
+          <label><input type="radio" name="iStatus" value="pending"><span>Pending</span></label>
+          <label><input type="radio" name="iStatus" value="sold"><span>Sold</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn danger spacer" type="button" id="iDelete">Delete</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit" id="iSave">Save item</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Sale info -->
+<dialog id="dInfo" aria-labelledby="dnTitle">
+  <form class="dlg" id="fInfo" method="dialog">
+    <div class="dlg-head"><h2 id="dnTitle">Sale info</h2><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="dlg-body">
+      <label class="field"><span>Page title</span><input type="text" id="sTitle" maxlength="70" placeholder="House sale on Geronimo Drive"></label>
+      <label class="field"><span>Short intro</span><textarea id="sIntro" maxlength="400" placeholder="We're selling furniture, appliances and more ahead of selling the house. First come, first served."></textarea></label>
+      <label class="field"><span>Phone for calls and texts</span><input type="tel" id="sPhone" placeholder="304-555-0123"><small>Shown on the page so buyers can tap to call or text.</small></label>
+      <label class="field"><span>Pickup details</span><textarea id="sPickup" placeholder="Saturdays 9–2 or by appointment. Buyer loads and hauls. Text first."></textarea></label>
+      <label class="field"><span>Payment</span><input type="text" id="sPay" placeholder="Cash, Venmo, or Zelle"></label>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save info</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- QR sign -->
+<dialog id="dQR" aria-labelledby="dqTitle">
+  <div class="dlg">
+    <div class="dlg-head"><h2 id="dqTitle">QR code sign</h2><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="dlg-body">
+      <label class="field"><span>Page address</span><input type="url" id="qUrl"><small id="qWarn"></small></label>
+      <div class="qrbox" id="qrBox"></div>
+      <p class="note" style="margin:0">Print it, then scan it with your own phone before posting it to make sure it opens the sale page.</p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-close>Close</button>
+      <button class="btn primary" type="button" id="qPrint">Print sign</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Publish -->
+<dialog id="dPub" aria-labelledby="dpTitle">
+  <form class="dlg" id="fPub" method="dialog">
+    <div class="dlg-head"><h2 id="dpTitle">Publish changes</h2><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="dlg-body">
+      <div class="note"><p id="pSize"></p><p>Publishing updates <b>items.json</b> (your items and sale info) in your GitHub repository. The live page updates within a minute or two.</p></div>
+      <label class="field"><span>GitHub username</span><input type="text" id="gOwner" autocomplete="off" autocapitalize="off"></label>
+      <label class="field"><span>Repository name</span><input type="text" id="gRepo" autocomplete="off" autocapitalize="off"></label>
+      <label class="field"><span>Branch</span><input type="text" id="gBranch" value="main" autocomplete="off" autocapitalize="off"></label>
+      <label class="field"><span>Access token</span><input type="password" id="gToken" autocomplete="off"><small>A fine-grained GitHub token limited to this one repository with Contents: read and write. It's stored only in this browser on this device.</small></label>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn spacer" type="button" id="pDownload">Download file instead</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit" id="pGo">Publish to GitHub</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Editor lock -->
+<dialog id="dLock" aria-labelledby="dlTitle">
+  <form class="dlg" id="fLock" method="dialog">
+    <div class="dlg-head"><h2 id="dlTitle">Unlock the editor</h2></div>
+    <div class="dlg-body">
+      <p class="note">Only the owner of this sale can edit it. Enter your GitHub details to unlock editing on this device.</p>
+      <label class="field"><span>GitHub username</span><input type="text" id="lOwner" autocomplete="off" autocapitalize="off"></label>
+      <label class="field"><span>Repository name</span><input type="text" id="lRepo" autocomplete="off" autocapitalize="off"></label>
+      <label class="field"><span>Access token</span><input type="password" id="lToken" autocomplete="off"></label>
+      <p id="lErr" style="color:var(--danger);font-weight:600;margin:0" role="alert"></p>
+    </div>
+    <div class="dlg-foot">
+      <a class="btn spacer" id="lView" href="./">View the sale instead</a>
+      <button class="btn primary" type="submit" id="lGo">Unlock editor</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="printSign" aria-hidden="true">
+  <h1 id="psTitle"></h1>
+  <p class="sub">Scan to see everything for sale, with photos and prices</p>
+  <div class="qr" id="psQR"></div>
+  <p class="call" id="psCall"></p>
+  <p class="url" id="psUrl"></p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  "use strict";
+  // Items live in items.json next to this page, so layout updates never touch them.
+  const DATA_FILE = "items.json";
+  const STATUS_RANK = { available: 0, pending: 1, sold: 2 };
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function normalize(d) {
+    d = d && typeof d === "object" ? d : {};
+    d.settings = Object.assign({ title: "", intro: "", phone: "", pickup: "", payment: "", updated: "" }, d.settings || {});
+    d.items = Array.isArray(d.items) ? d.items : [];
+    return d;
+  }
+
+  let published = normalize({});
+  let loadState = "loading"; // loading | ready | error
+  let data = structuredClone(published);
+  let dirty = false;
+  let filter = "all";
+  let editing = false; // turns on only after the GitHub token is verified
+
+  // ---------- Small IndexedDB store for unpublished drafts ----------
+  const idb = {
+    open() {
+      if (this.p) return this.p;
+      this.p = new Promise((res, rej) => {
+        const r = indexedDB.open("sale-editor", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("kv");
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      return this.p;
+    },
+    async run(mode, fn) {
+      const db = await this.open();
+      return new Promise((res, rej) => {
+        const tx = db.transaction("kv", mode);
+        const req = fn(tx.objectStore("kv"));
+        tx.oncomplete = () => res(req && req.result);
+        tx.onerror = () => rej(tx.error);
+      });
+    },
+    get(k) { return this.run("readonly", (s) => s.get(k)); },
+    set(k, v) { return this.run("readwrite", (s) => s.put(v, k)); },
+    del(k) { return this.run("readwrite", (s) => s.delete(k)); },
+  };
+
+  // ---------- Helpers ----------
+  function toast(msg, ms = 2600) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast.h);
+    toast.h = setTimeout(() => t.classList.remove("show"), ms);
+  }
+  const money = (n) => "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  const hasPrice = (it) => it.price !== null && it.price !== undefined && it.price !== "";
+  function tagText(it) { return hasPrice(it) ? money(it.price) : "Make an offer"; }
+  function priceText(it) {
+    if (hasPrice(it)) return it.offer ? money(it.price) + " or best offer" : money(it.price);
+    return "Make an offer";
+  }
+  const telHref = (p) => "tel:" + p.replace(/[^\d+]/g, "");
+  const smsHref = (p, body) => "sms:" + p.replace(/[^\d+]/g, "") + (body ? "?&body=" + encodeURIComponent(body) : "");
+  const statusLabel = { available: "Available", pending: "Pending pickup", sold: "Sold" };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  // ---------- Rendering ----------
+  function render() {
+    const s = data.settings;
+    const title = s.title || "Items for sale";
+    $("hTitle").textContent = title;
+    document.title = title;
+    $("hIntro").textContent = s.intro;
+    $("hIntro").hidden = !s.intro;
+
+    const facts = [];
+    if (s.pickup) facts.push(["Pickup", s.pickup]);
+    if (s.payment) facts.push(["Payment", s.payment]);
+    if (s.phone) facts.push(["Questions? Call or text", s.phone]);
+    $("facts").innerHTML = facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
+    $("facts").hidden = !facts.length;
+
+    const avail = data.items.filter((i) => i.status !== "sold").length;
+    const sold = data.items.length - avail;
+    $("count").textContent = data.items.length
+      ? `${avail} available${sold ? `, ${sold} sold` : ""}`
+      : "";
+
+    const list = data.items
+      .map((it, idx) => ({ it, idx }))
+      .filter(({ it }) => filter === "all" || it.status === "available")
+      .sort((a, b) => (STATUS_RANK[a.it.status] - STATUS_RANK[b.it.status]) || a.idx - b.idx)
+      .map(({ it }) => it);
+
+    const grid = $("grid");
+    if (loadState === "loading") {
+      grid.innerHTML = `<div class="empty"><strong>Loading items…</strong></div>`;
+    } else if (loadState === "error" && !data.items.length) {
+      grid.innerHTML = `<div class="empty"><strong>Items didn't load</strong>Check your connection and refresh the page.</div>`;
+    } else if (!data.items.length) {
+      grid.innerHTML = editing
+        ? `<div class="empty"><strong>Add your first item</strong>Tap “+ Add item”, take a photo, and give it a name and price.</div>`
+        : `<div class="empty"><strong>Items are being added</strong>Check back soon.</div>`;
+    } else if (!list.length) {
+      grid.innerHTML = `<div class="empty"><strong>Everything's spoken for</strong>Switch to “All items” to see what sold.</div>`;
+    } else {
+      grid.innerHTML = list.map((it) => `
+        <button class="card s-${esc(it.status)}" type="button" data-id="${esc(it.id)}" aria-label="${esc(it.title)}, ${esc(priceText(it))}, ${esc(statusLabel[it.status])}">
+          <span class="ph">
+            ${it.photos && it.photos[0] ? `<img src="${it.photos[0]}" alt="" loading="lazy">` : `<span class="none">No photo</span>`}
+            ${it.status !== "sold" ? `<span class="tag">${esc(tagText(it))}</span>` : ""}
+            ${it.status === "pending" ? `<span class="pill">Pending pickup</span>` : ""}
+            ${it.status === "sold" ? `<span class="stamp"><span>SOLD</span></span>` : ""}
+          </span>
+          <span class="body">
+            <span class="t">${esc(it.title)}</span>
+            ${it.desc ? `<span class="d">${esc(it.desc)}</span>` : ""}
+            <span class="edit-hint">Tap to edit</span>
+          </span>
+        </button>`).join("");
+    }
+
+    const cb = $("contactbar");
+    if (s.phone && !editing) {
+      cb.hidden = false;
+      $("cbText").href = smsHref(s.phone, `Hi, I saw your sale page (${title}). `);
+      $("cbCall").href = telHref(s.phone);
+    } else cb.hidden = true;
+
+    $("updated").textContent = s.updated
+      ? "Last updated " + new Date(s.updated).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })
+      : "";
+  }
+
+  document.querySelectorAll(".seg button").forEach((b) =>
+    b.addEventListener("click", () => {
+      filter = b.dataset.filter;
+      document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      render();
+    })
+  );
+
+  $("grid").addEventListener("click", (e) => {
+    const card = e.target.closest(".card");
+    if (!card) return;
+    const it = data.items.find((i) => i.id === card.dataset.id);
+    if (!it) return;
+    editing ? openItemEditor(it) : openDetail(it);
+  });
+
+  document.querySelectorAll("dialog").forEach((d) => {
+    d.addEventListener("click", (e) => {
+      if (e.target === d || e.target.closest("[data-close]")) d.close();
+    });
+  });
+
+  function openDetail(it) {
+    const s = data.settings;
+    $("ddTitle").textContent = it.title;
+    const photos = it.photos || [];
+    let html = "";
+    if (photos.length) {
+      html += `<div class="gallery">${photos.map((p, i) => `<img src="${p}" alt="${esc(it.title)}, photo ${i + 1} of ${photos.length}">`).join("")}</div>`;
+      if (photos.length > 1) html += `<p class="swipe">${photos.length} photos. Swipe to see more.</p>`;
+    }
+    html += `<p class="detail-price">${esc(priceText(it))}</p>`;
+    html += `<div class="detail-status ${esc(it.status)}">${esc(statusLabel[it.status])}</div>`;
+    if (it.desc) html += `<p class="detail-desc">${esc(it.desc)}</p>`;
+    if (s.phone && it.status !== "sold") {
+      html += `<div class="detail-actions">
+        <a class="btn primary" href="${esc(smsHref(s.phone, `Hi, is the "${it.title}" still available? `))}">Text about this item</a>
+        <a class="btn" href="${esc(telHref(s.phone))}">Call</a></div>`;
+    }
+    $("ddBody").innerHTML = html;
+    $("dDetail").showModal();
+    $("ddBody").scrollTop = 0;
+  }
+
+  // ---------- Editor ----------
+  let editingItem = null;
+  let formPhotos = [];
+
+  function renderThumbs() {
+    $("thumbs").innerHTML = formPhotos.map((p, i) => `
+      <div class="thumb ${i === 0 ? "cover" : ""}" data-i="${i}" role="button" tabindex="0" aria-label="Photo ${i + 1}${i === 0 ? ", cover" : ", make cover"}">
+        <img src="${p}" alt="">
+        <button type="button" class="rm" data-rm="${i}" aria-label="Remove photo ${i + 1}">×</button>
+        ${i === 0 ? `<span class="cv">Cover</span>` : ""}
+      </div>`).join("");
+  }
+  $("thumbs").addEventListener("click", (e) => {
+    const rm = e.target.closest("[data-rm]");
+    if (rm) { formPhotos.splice(+rm.dataset.rm, 1); renderThumbs(); return; }
+    const th = e.target.closest(".thumb");
+    if (th && +th.dataset.i > 0) {
+      const [p] = formPhotos.splice(+th.dataset.i, 1);
+      formPhotos.unshift(p);
+      renderThumbs();
+    }
+  });
+
+  async function compress(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const max = 1100;
+      const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * scale);
+      c.height = Math.round(img.naturalHeight * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL("image/jpeg", 0.72);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+  async function addFiles(files) {
+    for (const f of files) {
+      try {
+        formPhotos.push(await compress(f));
+        renderThumbs();
+      } catch {
+        toast("That photo couldn't be read. Try a JPEG or PNG.");
+      }
+    }
+  }
+  ["pCamera", "pLibrary"].forEach((id) =>
+    $(id).addEventListener("change", async (e) => {
+      await addFiles([...e.target.files]);
+      e.target.value = "";
+    })
+  );
+
+  function openItemEditor(it) {
+    editingItem = it || null;
+    formPhotos = it ? [...(it.photos || [])] : [];
+    $("diTitle").textContent = it ? "Edit item" : "Add item";
+    $("iTitle").value = it ? it.title : "";
+    $("iDesc").value = it ? it.desc || "" : "";
+    $("iPrice").value = it && hasPrice(it) ? it.price : "";
+    $("iOffer").checked = it ? !!it.offer : false;
+    const st = it ? it.status : "available";
+    document.querySelectorAll('input[name="iStatus"]').forEach((r) => (r.checked = r.value === st));
+    $("iDelete").hidden = !it;
+    renderThumbs();
+    $("dItem").showModal();
+    $("dItem").querySelector(".dlg-body").scrollTop = 0;
+  }
+
+  $("fItem").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const title = $("iTitle").value.trim();
+    if (!title) { $("iTitle").focus(); return; }
+    const priceRaw = $("iPrice").value.trim();
+    const fields = {
+      title,
+      desc: $("iDesc").value.trim(),
+      price: priceRaw === "" ? null : Math.max(0, Number(priceRaw)),
+      offer: $("iOffer").checked,
+      status: document.querySelector('input[name="iStatus"]:checked').value,
+      photos: formPhotos,
+    };
+    if (editingItem) Object.assign(editingItem, fields);
+    else data.items.unshift(Object.assign({ id: uid(), created: new Date().toISOString() }, fields));
+    $("dItem").close();
+    markDirty();
+    toast(editingItem ? "Item saved" : "Item added");
+  });
+
+  $("iDelete").addEventListener("click", () => {
+    if (!editingItem) return;
+    if (!confirm(`Delete “${editingItem.title}” from the sale?`)) return;
+    data.items = data.items.filter((i) => i !== editingItem);
+    $("dItem").close();
+    markDirty();
+    toast("Item deleted");
+  });
+
+  $("bAdd").addEventListener("click", () => openItemEditor(null));
+
+  $("bInfo").addEventListener("click", () => {
+    const s = data.settings;
+    $("sTitle").value = s.title; $("sIntro").value = s.intro; $("sPhone").value = s.phone;
+    $("sPickup").value = s.pickup; $("sPay").value = s.payment;
+    $("dInfo").showModal();
+  });
+  $("fInfo").addEventListener("submit", (e) => {
+    e.preventDefault();
+    Object.assign(data.settings, {
+      title: $("sTitle").value.trim(), intro: $("sIntro").value.trim(), phone: $("sPhone").value.trim(),
+      pickup: $("sPickup").value.trim(), payment: $("sPay").value.trim(),
+    });
+    $("dInfo").close();
+    markDirty();
+    toast("Sale info saved");
+  });
+
+  function markDirty() {
+    dirty = true;
+    idb.set("draft", data).catch(() => toast("Couldn't save a draft on this device. Publish soon."));
+    updateBanner();
+    render();
+  }
+  function updateBanner() { $("banner").classList.toggle("show", editing && dirty); }
+
+  $("bDiscard").addEventListener("click", async () => {
+    if (!confirm("Discard all unpublished changes on this device?")) return;
+    await idb.del("draft").catch(() => {});
+    data = structuredClone(published);
+    dirty = false;
+    updateBanner();
+    render();
+    toast("Changes discarded");
+  });
+
+  // ---------- QR sign ----------
+  function liveUrl() { return location.origin + location.pathname; }
+  function loadQRLib() {
+    if (window.QRCode) return Promise.resolve();
+    return new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+      s.onload = res;
+      s.onerror = () => rej(new Error("QR library failed to load"));
+      document.head.appendChild(s);
+    });
+  }
+  function drawQR(el, text, size) {
+    el.innerHTML = "";
+    new QRCode(el, { text, width: size, height: size, correctLevel: QRCode.CorrectLevel.M });
+  }
+  async function refreshQR() {
+    const url = $("qUrl").value.trim();
+    $("qWarn").textContent = /^https?:\/\//.test(url) ? "" : "This must be the web address of your GitHub Pages site (starts with https://).";
+    try {
+      await loadQRLib();
+      drawQR($("qrBox"), url || " ", 220);
+    } catch {
+      $("qrBox").textContent = "The QR generator couldn't load. Check your internet connection.";
+    }
+  }
+  $("bQR").addEventListener("click", () => {
+    if (!$("qUrl").value) $("qUrl").value = location.protocol.startsWith("http") ? liveUrl() : "";
+    $("dQR").showModal();
+    refreshQR();
+  });
+  $("qUrl").addEventListener("input", () => { clearTimeout(refreshQR.h); refreshQR.h = setTimeout(refreshQR, 300); });
+  $("qPrint").addEventListener("click", async () => {
+    const url = $("qUrl").value.trim();
+    if (!/^https?:\/\//.test(url)) { $("qUrl").focus(); return; }
+    await loadQRLib();
+    const s = data.settings;
+    $("psTitle").textContent = s.title || "Items for sale";
+    drawQR($("psQR"), url, 600);
+    $("psCall").textContent = s.phone ? "Call or text " + s.phone : "";
+    $("psUrl").textContent = url;
+    $("dQR").close();
+    setTimeout(() => window.print(), 250);
+  });
+
+  // ---------- Publishing ----------
+  const GH_KEY = "sale-github";
+  function ghLoad() { try { return JSON.parse(localStorage.getItem(GH_KEY) || "{}"); } catch { return {}; } }
+  function ghSave(cfg) { try { localStorage.setItem(GH_KEY, JSON.stringify(cfg)); } catch {} }
+
+  async function loadData() {
+    try {
+      const r = await fetch(DATA_FILE + "?t=" + Date.now(), { cache: "no-store" });
+      if (r.status === 404) { loadState = "ready"; return; } // nothing published yet
+      if (!r.ok) throw new Error(String(r.status));
+      published = normalize(await r.json());
+      data = structuredClone(published);
+      loadState = "ready";
+    } catch {
+      loadState = "error";
+    }
+  }
+  function buildJson() {
+    const out = structuredClone(data);
+    out.settings.updated = new Date().toISOString();
+    return { json: JSON.stringify(out), out };
+  }
+  function b64utf8(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for (let k = 0; k < bytes.length; k += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(k, k + 0x8000));
+    return btoa(bin);
+  }
+  function afterPublish(out) {
+    published = normalize(out);
+    data = structuredClone(published);
+    dirty = false;
+    idb.del("draft").catch(() => {});
+    updateBanner();
+    render();
+  }
+
+  $("bPublish").addEventListener("click", () => {
+    const cfg = ghLoad();
+    let owner = cfg.owner, repo = cfg.repo;
+    if (!owner && location.hostname.endsWith(".github.io")) {
+      owner = location.hostname.split(".")[0];
+      const seg = location.pathname.split("/").filter(Boolean)[0];
+      repo = seg && !seg.endsWith(".html") ? seg : location.hostname;
+    }
+    $("gOwner").value = owner || "";
+    $("gRepo").value = repo || "";
+    $("gBranch").value = cfg.branch || "main";
+    $("gToken").value = cfg.token || "";
+    const mb = new Blob([JSON.stringify(data)]).size / 1048576;
+    $("pSize").textContent = `${data.items.length} item${data.items.length === 1 ? "" : "s"}, page size about ${mb.toFixed(1)} MB.` +
+      (mb > 15 ? " That's getting large for phones on slow connections; consider fewer photos per item." : "");
+    $("dPub").showModal();
+  });
+
+  $("fPub").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const cfg = {
+      owner: $("gOwner").value.trim(), repo: $("gRepo").value.trim(),
+      branch: $("gBranch").value.trim() || "main", token: $("gToken").value.trim(),
+    };
+    if (!cfg.owner || !cfg.repo || !cfg.token) { toast("Fill in username, repository and token."); return; }
+    ghSave(cfg);
+    const btn = $("pGo");
+    btn.disabled = true; btn.textContent = "Publishing…";
+    try {
+      const { json, out } = buildJson();
+      const api = `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${DATA_FILE}`;
+      const headers = { Authorization: `Bearer ${cfg.token}`, Accept: "application/vnd.github+json" };
+      let sha;
+      const g = await fetch(`${api}?ref=${encodeURIComponent(cfg.branch)}`, { headers, cache: "no-store" });
+      if (g.ok) sha = (await g.json()).sha;
+      else if (g.status === 401) throw new Error("GitHub rejected the token. Check that it's correct and not expired.");
+      else if (g.status !== 404) throw new Error(`GitHub returned ${g.status} while reading the repository.`);
+      const p = await fetch(api, {
+        method: "PUT", headers,
+        body: JSON.stringify({ message: "Update sale items", content: b64utf8(json), branch: cfg.branch, ...(sha ? { sha } : {}) }),
+      });
+      if (!p.ok) {
+        const msg = (await p.json().catch(() => ({}))).message || "";
+        if (p.status === 403 || p.status === 404) throw new Error("The token can't write to this repository. Give it Contents: read and write on this repo.");
+        throw new Error(`GitHub returned ${p.status}${msg ? ": " + msg : ""}.`);
+      }
+      afterPublish(out);
+      $("dPub").close();
+      toast("Published. The live page updates in a minute or two.", 4500);
+    } catch (err) {
+      toast(err.message || "Publishing failed.", 5000);
+    } finally {
+      btn.disabled = false; btn.textContent = "Publish to GitHub";
+    }
+  });
+
+  $("pDownload").addEventListener("click", async () => {
+    try {
+      const { json, out } = buildJson();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+      a.download = DATA_FILE;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      afterPublish(out);
+      $("dPub").close();
+      toast("Downloaded items.json. Upload it to your repository to update the live page.", 5000);
+    } catch (err) {
+      toast(err.message || "Download failed.");
+    }
+  });
+
+  // ---------- Start ----------
+  window.addEventListener("hashchange", () => location.reload());
+
+  // Confirms the token belongs to someone who can write to the repository.
+  async function verifyOwner(cfg) {
+    const r = await fetch(`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`, {
+      headers: { Authorization: `Bearer ${cfg.token}`, Accept: "application/vnd.github+json" },
+      cache: "no-store",
+    });
+    if (r.status === 401) throw new Error("GitHub rejected that token. Check it's correct and not expired or revoked.");
+    if (r.status === 404) throw new Error("No repository with that name is visible to this token.");
+    if (!r.ok) throw new Error(`GitHub returned ${r.status}. Try again.`);
+    const j = await r.json();
+    if (!j.permissions || !j.permissions.push) throw new Error("This token can't change that repository.");
+  }
+
+  function enterEditMode() {
+    if (loadState === "error") {
+      toast("Items didn't load, so editing is paused to protect them. Refresh and try again.", 6000);
+      return;
+    }
+    editing = true;
+    document.body.classList.add("editing");
+    idb.get("draft").then((d) => {
+      if (d) { data = normalize(d); dirty = true; updateBanner(); }
+      render();
+    }).catch(() => render());
+    render();
+  }
+
+  function showLock(message) {
+    const cfg = ghLoad();
+    let owner = cfg.owner, repo = cfg.repo;
+    if (!owner && location.hostname.endsWith(".github.io")) {
+      owner = location.hostname.split(".")[0];
+      const seg = location.pathname.split("/").filter(Boolean)[0];
+      repo = seg && !seg.endsWith(".html") ? seg : location.hostname;
+    }
+    $("lOwner").value = owner || "";
+    $("lRepo").value = repo || "";
+    $("lToken").value = "";
+    $("lErr").textContent = message || "";
+    $("lView").href = location.pathname;
+    $("dLock").showModal();
+  }
+  // The lock can't be dismissed with Escape; leaving it returns to the public view.
+  $("dLock").addEventListener("cancel", (e) => { e.preventDefault(); location.href = location.pathname; });
+  $("fLock").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const cfg = Object.assign(ghLoad(), {
+      owner: $("lOwner").value.trim(), repo: $("lRepo").value.trim(), token: $("lToken").value.trim(),
+    });
+    if (!cfg.owner || !cfg.repo || !cfg.token) { $("lErr").textContent = "Fill in all three fields."; return; }
+    const btn = $("lGo");
+    btn.disabled = true; btn.textContent = "Checking…";
+    try {
+      await verifyOwner(cfg);
+      ghSave(cfg);
+      $("dLock").close();
+      enterEditMode();
+      toast("Editor unlocked on this device");
+    } catch (err) {
+      $("lErr").textContent = err.message;
+    } finally {
+      btn.disabled = false; btn.textContent = "Unlock editor";
+    }
+  });
+
+  (async () => {
+  render();
+  await loadData();
+  render();
+  if (location.hash === "#edit") {
+    const cfg = ghLoad();
+    if (cfg.owner && cfg.repo && cfg.token) {
+      verifyOwner(cfg).then(enterEditMode).catch((err) => {
+        if (err instanceof TypeError) {
+          showLock("Couldn't reach GitHub to confirm it's you. Check your connection, then unlock again.");
+          return;
+        }
+        try { localStorage.removeItem(GH_KEY); } catch {}
+        showLock(err.message + " Enter a valid token to keep editing.");
+      });
+    } else {
+      showLock();
+    }
+  }
+  })();
+})();
+</script>
+</body>
+</html>
