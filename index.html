@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light only">
-<meta name="page-version" content="8">
+<meta name="page-version" content="9">
 <title>Items for sale</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,6 +59,15 @@ header.sale .intro{margin:0 0 16px;color:var(--muted);max-width:60ch}
 .card.s-sold img{filter:grayscale(.8)}
 .body{padding:12px 14px 16px;display:flex;flex-direction:column;gap:4px}
 .t{font:600 1.15rem/1.25 var(--display)}
+.num{font:600 .85rem var(--body);color:var(--muted);margin-right:6px}
+.cond{display:inline-block;font-size:.8rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--pine-soft);color:var(--pine);align-self:flex-start}
+.tag.free{background:var(--pine);color:var(--pine-ink)}
+.tag.free::before{background:var(--pine-soft)}
+.rules{margin:0 0 16px;padding:10px 14px;border-left:5px solid var(--tag);background:var(--surface);border-radius:0 8px 8px 0;font-weight:600;white-space:pre-line;max-width:70ch}
+.search{flex:1 1 220px;max-width:360px;position:relative}
+.search input{width:100%;min-height:44px;padding:9px 38px 9px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.search button{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;border:0;border-radius:50%;background:none;color:var(--muted);font-size:1.3rem;cursor:pointer}
+.empty .btn{margin-top:12px}
 .m{font-size:.92rem;font-weight:600;color:var(--ink)}
 .m b{color:var(--pine);font-weight:700}
 .specs{margin:12px 0 0;padding:10px 12px;background:var(--pine-soft);border-radius:8px}
@@ -174,7 +183,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
 
 <div class="editbar" role="region" aria-label="Editor">
   <div class="wrap">
-    <strong>Editing your sale <span style="font-weight:400;opacity:.8;font-size:.85em">(page version 8)</span></strong>
+    <strong>Editing your sale <span style="font-weight:400;opacity:.8;font-size:.85em">(page version 9)</span></strong>
     <button class="btn small" id="bAdd" type="button">+ Add item</button>
     <button class="btn small" id="bInfo" type="button">Sale info</button>
     <button class="btn small" id="bQR" type="button">QR sign</button>
@@ -192,21 +201,24 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
   <div class="wrap">
     <h1 id="hTitle">Items for sale</h1>
     <p class="intro" id="hIntro"></p>
+    <p class="rules" id="hRules" hidden></p>
     <dl class="facts" id="facts"></dl>
   </div>
 </header>
 
 <main class="wrap">
   <div class="toolbar">
-    <span class="count" id="count"></span>
+    <div class="search"><input type="search" id="q" placeholder="Search items or #number" aria-label="Search items"><button type="button" id="qClear" aria-label="Clear search" hidden>×</button></div>
     <div class="seg" role="group" aria-label="Show">
       <button type="button" data-filter="all" aria-pressed="true">All items</button>
       <button type="button" data-filter="available" aria-pressed="false">Still available</button>
+      <button type="button" data-filter="free" aria-pressed="false" id="fFree" hidden>Free</button>
     </div>
   </div>
+  <p class="count" id="count" style="margin:-4px 0 12px"></p>
   <div class="grid" id="grid"></div>
 </main>
-<footer class="foot"><div class="wrap"><span id="updated"></span> <span style="opacity:.7">Page version 8</span></div></footer>
+<footer class="foot"><div class="wrap"><span id="updated"></span> <span style="opacity:.7">Page version 9</span></div></footer>
 
 <nav class="contactbar" id="contactbar" aria-label="Contact" hidden>
   <a class="btn primary" id="cbEmail" href="#">Email us</a>
@@ -236,8 +248,11 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
       <label class="field"><span>Item name</span><input type="text" id="iTitle" required maxlength="80" placeholder="Oak dining table with 6 chairs"></label>
       <label class="field"><span>Measurements</span><input type="text" id="iSize" maxlength="120" placeholder='84" W x 36" D x 32" H'><small>Width x depth x height works well. Leave blank if it doesn't apply.</small></label>
       <label class="field"><span>Description</span><textarea id="iDesc" maxlength="1500" placeholder="Size, condition, age, anything a buyer should know"></textarea></label>
+      <label class="check" style="margin:0 0 12px"><input type="checkbox" id="iFree"> Free, just haul it away</label>
       <label class="field"><span>Price ($)</span><input type="number" id="iPrice" min="0" step="1" inputmode="numeric" placeholder="Leave blank for make an offer"></label>
       <label class="check"><input type="checkbox" id="iOffer"> Open to offers</label>
+      <label class="field"><span>Condition</span>
+        <select id="iCond"><option value="">Not specified</option><option>Like new</option><option>Good</option><option>Fair</option><option>Needs work</option></select></label>
       <div class="field"><span>Status</span>
         <div class="radios">
           <label><input type="radio" name="iStatus" value="available" checked><span>Available</span></label>
@@ -264,6 +279,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
       <label class="field"><span>Email for questions</span><input type="email" id="sEmail" autocapitalize="off" placeholder="geronimosale@gmail.com"><small>Shown on the page so buyers can email you. No phone number is shown anywhere.</small></label>
       <label class="field"><span>Pickup details</span><textarea id="sPickup" placeholder="Saturdays 9–2 or by appointment. Buyer loads and hauls. Text first."></textarea></label>
       <label class="field"><span>Payment</span><input type="text" id="sPay" placeholder="Cash, Venmo, or Zelle"></label>
+      <label class="field"><span>Sale rules</span><textarea id="sRules" maxlength="300" placeholder="Sold as-is. No holds without payment. First come, first served."></textarea><small>Shown in a highlighted box near the top of the page.</small></label>
     </div>
     <div class="dlg-foot">
       <button class="btn" type="button" data-close>Cancel</button>
@@ -346,8 +362,11 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
 
   function normalize(d) {
     d = d && typeof d === "object" ? d : {};
-    d.settings = Object.assign({ title: "", intro: "", email: "", pickup: "", payment: "", updated: "" }, d.settings || {});
+    d.settings = Object.assign({ title: "", intro: "", email: "", pickup: "", payment: "", rules: "", updated: "" }, d.settings || {});
     d.items = Array.isArray(d.items) ? d.items : [];
+    // Give every item a permanent number. Oldest items (end of the list) get the lowest numbers.
+    let next = d.items.reduce((m, i) => Math.max(m, Number(i.num) || 0), 0) + 1;
+    for (let k = d.items.length - 1; k >= 0; k--) if (!d.items[k].num) d.items[k].num = next++;
     return d;
   }
 
@@ -394,10 +413,18 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
   }
   const money = (n) => "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
   const hasPrice = (it) => it.price !== null && it.price !== undefined && it.price !== "";
-  function tagText(it) { return hasPrice(it) ? money(it.price) : "Make an offer"; }
+  function tagText(it) { return it.free ? "Free" : hasPrice(it) ? money(it.price) : "Make an offer"; }
   function priceText(it) {
+    if (it.free) return "Free, just haul it away";
     if (hasPrice(it)) return it.offer ? money(it.price) + " or best offer" : money(it.price);
     return "Make an offer";
+  }
+  function matches(it, q) {
+    if (!q) return true;
+    const n = q.replace(/^#/, "");
+    if (/^\d+$/.test(n)) return String(it.num) === n || (it.title + " " + (it.size || "")).includes(n);
+    const hay = [it.title, it.desc, it.size, it.cond, it.free ? "free" : ""].join(" ").toLowerCase();
+    return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
   }
   const mailHref = (to, subject, body) =>
     "mailto:" + encodeURIComponent(to).replace(/%40/g, "@") +
@@ -427,6 +454,11 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     fitTitle();
     $("hIntro").textContent = s.intro;
     $("hIntro").hidden = !s.intro;
+    $("hRules").textContent = s.rules;
+    $("hRules").hidden = !s.rules;
+    const anyFree = data.items.some((i) => i.free && i.status !== "sold");
+    $("fFree").hidden = !anyFree;
+    if (!anyFree && filter === "free") { filter = "all"; document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.filter === "all"))); }
 
     const facts = [];
     if (s.pickup) facts.push(["Pickup", s.pickup]);
@@ -443,7 +475,8 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
 
     const list = data.items
       .map((it, idx) => ({ it, idx }))
-      .filter(({ it }) => filter === "all" || it.status === "available")
+      .filter(({ it }) => filter === "all" || (filter === "available" && it.status === "available") || (filter === "free" && it.free && it.status !== "sold"))
+      .filter(({ it }) => matches(it, query))
       .sort((a, b) => (STATUS_RANK[a.it.status] - STATUS_RANK[b.it.status]) || a.idx - b.idx)
       .map(({ it }) => it);
 
@@ -456,20 +489,23 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
       grid.innerHTML = editing
         ? `<div class="empty"><strong>Add your first item</strong>Tap “+ Add item”, take a photo, and give it a name and price.</div>`
         : `<div class="empty"><strong>Items are being added</strong>Check back soon.</div>`;
+    } else if (!list.length && query) {
+      grid.innerHTML = `<div class="empty"><strong>No items match “${esc(query)}”</strong>Try a different word, or <button class="btn small" type="button" data-clear-search>Show all items</button></div>`;
     } else if (!list.length) {
-      grid.innerHTML = `<div class="empty"><strong>Everything's spoken for</strong>Switch to “All items” to see what sold.</div>`;
+      grid.innerHTML = `<div class="empty"><strong>Nothing here right now</strong>Switch to “All items” to see everything.</div>`;
     } else {
       grid.innerHTML = list.map((it) => `
         <button class="card s-${esc(it.status)}" type="button" data-id="${esc(it.id)}" aria-label="${esc(it.title)}, ${esc(priceText(it))}, ${esc(statusLabel[it.status])}">
           <span class="ph">
             ${it.photos && it.photos[0] ? `<img src="${it.photos[0]}" alt="" loading="lazy">` : `<span class="none">No photo</span>`}
-            ${it.status !== "sold" ? `<span class="tag">${esc(tagText(it))}</span>` : ""}
+            ${it.status !== "sold" ? `<span class="tag${it.free ? " free" : ""}">${esc(tagText(it))}</span>` : ""}
             ${it.status === "pending" ? `<span class="pill">Pending pickup</span>` : ""}
             ${it.photos && it.photos.length > 1 && it.status !== "sold" ? `<span class="count-badge">${it.photos.length} photos</span>` : ""}
             ${it.status === "sold" ? `<span class="stamp"><span>SOLD</span></span>` : ""}
           </span>
           <span class="body">
-            <span class="t">${esc(it.title)}</span>
+            <span class="t"><span class="num">#${esc(it.num)}</span>${esc(it.title)}</span>
+            ${it.cond ? `<span class="cond">${esc(it.cond)}</span>` : ""}
             ${it.size ? `<span class="m"><b>Size:</b> ${esc(it.size)}</span>` : ""}
             ${it.desc ? `<span class="d">${esc(it.desc)}</span>` : ""}
             <span class="edit-hint">Tap to edit</span>
@@ -496,7 +532,16 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     })
   );
 
+  let query = "";
+  $("q").addEventListener("input", () => {
+    clearTimeout($("q")._t);
+    $("q")._t = setTimeout(() => { query = $("q").value.trim(); $("qClear").hidden = !query; render(); }, 150);
+  });
+  function clearSearch() { $("q").value = ""; query = ""; $("qClear").hidden = true; render(); }
+  $("qClear").addEventListener("click", () => { clearSearch(); $("q").focus(); });
+
   $("grid").addEventListener("click", (e) => {
+    if (e.target.closest("[data-clear-search]")) { clearSearch(); return; }
     const card = e.target.closest(".card");
     if (!card) return;
     const it = data.items.find((i) => i.id === card.dataset.id);
@@ -512,7 +557,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
 
   function openDetail(it) {
     const s = data.settings;
-    $("ddTitle").textContent = it.title;
+    $("ddTitle").textContent = `#${it.num}  ${it.title}`;
     const photos = it.photos || [];
     let html = "";
     if (photos.length) {
@@ -526,11 +571,11 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     }
     html += `<p class="detail-price">${esc(priceText(it))}</p>`;
     html += `<div class="detail-status ${esc(it.status)}">${esc(statusLabel[it.status])}</div>`;
-    if (it.size) html += `<dl class="specs"><dt>Measurements</dt><dd>${esc(it.size)}</dd></dl>`;
+    if (it.size || it.cond) html += `<dl class="specs">${it.size ? `<dt>Measurements</dt><dd>${esc(it.size)}</dd>` : ""}${it.cond ? `<dt${it.size ? ' style="margin-top:8px"' : ""}>Condition</dt><dd>${esc(it.cond)}</dd>` : ""}</dl>`;
     if (it.desc) html += `<p class="detail-desc">${esc(it.desc)}</p>`;
     if (s.email && it.status !== "sold") {
       html += `<div class="detail-actions">
-        <a class="btn primary" href="${esc(mailHref(s.email, `Is the ${it.title} still available?`, `Hi, I'm interested in the ${it.title} (${priceText(it)}). Is it still available?\n\n`))}">Email about this item</a></div>
+        <a class="btn primary" href="${esc(mailHref(s.email, `Item #${it.num}: ${it.title}`, `Hi, I'm interested in item #${it.num}, the ${it.title} (${priceText(it)}). Is it still available?\n\n`))}">Email about this item</a></div>
         <p class="swipe">Or email ${esc(s.email)}</p>`;
     }
     $("ddBody").innerHTML = html;
@@ -630,6 +675,9 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     $("iSize").value = it ? it.size || "" : "";
     $("iPrice").value = it && hasPrice(it) ? it.price : "";
     $("iOffer").checked = it ? !!it.offer : false;
+    $("iFree").checked = it ? !!it.free : false;
+    $("iCond").value = it ? it.cond || "" : "";
+    syncFree();
     const st = it ? it.status : "available";
     document.querySelectorAll('input[name="iStatus"]').forEach((r) => (r.checked = r.value === st));
     $("iDelete").hidden = !it;
@@ -647,17 +695,28 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
       title,
       desc: $("iDesc").value.trim(),
       size: $("iSize").value.trim(),
-      price: priceRaw === "" ? null : Math.max(0, Number(priceRaw)),
-      offer: $("iOffer").checked,
+      price: $("iFree").checked || priceRaw === "" ? null : Math.max(0, Number(priceRaw)),
+      offer: $("iFree").checked ? false : $("iOffer").checked,
+      free: $("iFree").checked,
+      cond: $("iCond").value,
       status: document.querySelector('input[name="iStatus"]:checked').value,
       photos: formPhotos,
     };
     if (editingItem) Object.assign(editingItem, fields);
-    else data.items.unshift(Object.assign({ id: uid(), created: new Date().toISOString() }, fields));
+    else data.items.unshift(Object.assign({ id: uid(), created: new Date().toISOString(),
+      num: data.items.reduce((m, i) => Math.max(m, Number(i.num) || 0), 0) + 1 }, fields));
     $("dItem").close();
     markDirty();
     toast(editingItem ? "Item saved" : "Item added");
   });
+
+  function syncFree() {
+    const f = $("iFree").checked;
+    $("iPrice").disabled = f; $("iOffer").disabled = f;
+    $("iPrice").closest(".field").style.opacity = f ? ".45" : "";
+    $("iOffer").closest(".check").style.opacity = f ? ".45" : "";
+  }
+  $("iFree").addEventListener("change", syncFree);
 
   $("iDelete").addEventListener("click", () => {
     if (!editingItem) return;
@@ -673,14 +732,14 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
   $("bInfo").addEventListener("click", () => {
     const s = data.settings;
     $("sTitle").value = s.title; $("sIntro").value = s.intro; $("sEmail").value = s.email;
-    $("sPickup").value = s.pickup; $("sPay").value = s.payment;
+    $("sPickup").value = s.pickup; $("sPay").value = s.payment; $("sRules").value = s.rules;
     $("dInfo").showModal();
   });
   $("fInfo").addEventListener("submit", (e) => {
     e.preventDefault();
     Object.assign(data.settings, {
       title: $("sTitle").value.trim(), intro: $("sIntro").value.trim(), email: $("sEmail").value.trim(),
-      pickup: $("sPickup").value.trim(), payment: $("sPay").value.trim(),
+      pickup: $("sPickup").value.trim(), payment: $("sPay").value.trim(), rules: $("sRules").value.trim(),
     });
     $("dInfo").close();
     markDirty();
