@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light only">
-<meta name="page-version" content="6">
+<meta name="page-version" content="8">
 <title>Items for sale</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,7 +30,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 
 /* Header */
 header.sale{border-top:8px solid var(--pine);padding:28px 0 18px}
-header.sale h1{font:800 clamp(2rem,6vw,3.2rem)/1.05 var(--display);margin:0 0 10px;letter-spacing:-.01em;max-width:18ch}
+header.sale h1{font:800 3.2rem/1.1 var(--display);margin:0 0 10px;letter-spacing:-.01em;white-space:nowrap}
 header.sale .intro{margin:0 0 16px;color:var(--muted);max-width:60ch}
 .facts{display:grid;gap:10px 28px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:0;padding:16px 0 0;border-top:1px solid var(--line)}
 .facts div{min-width:0}
@@ -59,6 +59,11 @@ header.sale .intro{margin:0 0 16px;color:var(--muted);max-width:60ch}
 .card.s-sold img{filter:grayscale(.8)}
 .body{padding:12px 14px 16px;display:flex;flex-direction:column;gap:4px}
 .t{font:600 1.15rem/1.25 var(--display)}
+.m{font-size:.92rem;font-weight:600;color:var(--ink)}
+.m b{color:var(--pine);font-weight:700}
+.specs{margin:12px 0 0;padding:10px 12px;background:var(--pine-soft);border-radius:8px}
+.specs dt{font-weight:700;color:var(--pine);font-size:.88rem}
+.specs dd{margin:2px 0 0}
 .d{color:var(--muted);font-size:.95rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .edit-hint{display:none;margin-top:6px;font-weight:700;color:var(--pine);font-size:.9rem}
 body.editing .edit-hint{display:block}
@@ -169,7 +174,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
 
 <div class="editbar" role="region" aria-label="Editor">
   <div class="wrap">
-    <strong>Editing your sale <span style="font-weight:400;opacity:.8;font-size:.85em">(page version 6)</span></strong>
+    <strong>Editing your sale <span style="font-weight:400;opacity:.8;font-size:.85em">(page version 8)</span></strong>
     <button class="btn small" id="bAdd" type="button">+ Add item</button>
     <button class="btn small" id="bInfo" type="button">Sale info</button>
     <button class="btn small" id="bQR" type="button">QR sign</button>
@@ -201,7 +206,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
   </div>
   <div class="grid" id="grid"></div>
 </main>
-<footer class="foot"><div class="wrap"><span id="updated"></span> <span style="opacity:.7">Page version 6</span></div></footer>
+<footer class="foot"><div class="wrap"><span id="updated"></span> <span style="opacity:.7">Page version 8</span></div></footer>
 
 <nav class="contactbar" id="contactbar" aria-label="Contact" hidden>
   <a class="btn primary" id="cbEmail" href="#">Email us</a>
@@ -229,6 +234,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
         <small>The first photo is the cover. Tap a photo to make it the cover.</small>
       </div>
       <label class="field"><span>Item name</span><input type="text" id="iTitle" required maxlength="80" placeholder="Oak dining table with 6 chairs"></label>
+      <label class="field"><span>Measurements</span><input type="text" id="iSize" maxlength="120" placeholder='84" W x 36" D x 32" H'><small>Width x depth x height works well. Leave blank if it doesn't apply.</small></label>
       <label class="field"><span>Description</span><textarea id="iDesc" maxlength="1500" placeholder="Size, condition, age, anything a buyer should know"></textarea></label>
       <label class="field"><span>Price ($)</span><input type="number" id="iPrice" min="0" step="1" inputmode="numeric" placeholder="Leave blank for make an offer"></label>
       <label class="check"><input type="checkbox" id="iOffer"> Open to offers</label>
@@ -399,12 +405,26 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
   const statusLabel = { available: "Available", pending: "Pending pickup", sold: "Sold" };
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+  // Keeps the page title on one line by shrinking it to fit the screen width.
+  function fitTitle() {
+    const h = $("hTitle");
+    const max = 51, min = 18; // px
+    h.style.fontSize = max + "px";
+    const avail = h.clientWidth;
+    const w = h.scrollWidth;
+    if (w > avail) h.style.fontSize = Math.max(min, Math.floor(max * avail / w) - 1) + "px";
+    h.style.whiteSpace = parseFloat(h.style.fontSize) <= min && h.scrollWidth > avail ? "normal" : "nowrap";
+  }
+  window.addEventListener("resize", () => { clearTimeout(fitTitle.t); fitTitle.t = setTimeout(fitTitle, 100); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitle);
+
   // ---------- Rendering ----------
   function render() {
     const s = data.settings;
     const title = s.title || "Items for sale";
     $("hTitle").textContent = title;
     document.title = title;
+    fitTitle();
     $("hIntro").textContent = s.intro;
     $("hIntro").hidden = !s.intro;
 
@@ -450,6 +470,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
           </span>
           <span class="body">
             <span class="t">${esc(it.title)}</span>
+            ${it.size ? `<span class="m"><b>Size:</b> ${esc(it.size)}</span>` : ""}
             ${it.desc ? `<span class="d">${esc(it.desc)}</span>` : ""}
             <span class="edit-hint">Tap to edit</span>
           </span>
@@ -505,6 +526,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     }
     html += `<p class="detail-price">${esc(priceText(it))}</p>`;
     html += `<div class="detail-status ${esc(it.status)}">${esc(statusLabel[it.status])}</div>`;
+    if (it.size) html += `<dl class="specs"><dt>Measurements</dt><dd>${esc(it.size)}</dd></dl>`;
     if (it.desc) html += `<p class="detail-desc">${esc(it.desc)}</p>`;
     if (s.email && it.status !== "sold") {
       html += `<div class="detail-actions">
@@ -605,6 +627,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     $("diTitle").textContent = it ? "Edit item" : "Add item";
     $("iTitle").value = it ? it.title : "";
     $("iDesc").value = it ? it.desc || "" : "";
+    $("iSize").value = it ? it.size || "" : "";
     $("iPrice").value = it && hasPrice(it) ? it.price : "";
     $("iOffer").checked = it ? !!it.offer : false;
     const st = it ? it.status : "available";
@@ -623,6 +646,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     const fields = {
       title,
       desc: $("iDesc").value.trim(),
+      size: $("iSize").value.trim(),
       price: priceRaw === "" ? null : Math.max(0, Number(priceRaw)),
       offer: $("iOffer").checked,
       status: document.querySelector('input[name="iStatus"]:checked').value,
