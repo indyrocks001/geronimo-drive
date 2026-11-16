@@ -106,7 +106,16 @@ dialog::backdrop{background:rgba(10,20,14,.6)}
 .dlg-foot{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
 .dlg-foot .spacer{margin-right:auto}
 
-.gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:6px;border-radius:8px;background:var(--pine-soft)}
+.count-badge{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.68);color:#fff;font-weight:700;font-size:.82rem;padding:4px 10px;border-radius:999px}
+.gwrap{position:relative}
+.gnav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.6rem;line-height:1;cursor:pointer;display:grid;place-items:center}
+.gnav:disabled{opacity:0;pointer-events:none}
+.gnav.prev{left:10px} .gnav.next{right:10px}
+.gthumbs{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:2px}
+.gthumbs button{flex:0 0 64px;height:64px;padding:0;border:2px solid transparent;border-radius:6px;overflow:hidden;cursor:pointer;background:none;opacity:.7}
+.gthumbs button[aria-current="true"]{border-color:var(--pine);opacity:1}
+.gthumbs img{width:100%;height:100%;object-fit:cover}
+.gallery{scroll-behavior:smooth;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:6px;border-radius:8px;background:var(--pine-soft)}
 .gallery img{flex:0 0 100%;scroll-snap-align:center;max-height:62dvh;object-fit:contain}
 .swipe{color:var(--muted);font-size:.85rem;margin:6px 0 0}
 .detail-price{font:800 1.6rem var(--display);margin:14px 0 2px}
@@ -202,8 +211,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
 <footer class="foot"><div class="wrap" id="updated"></div></footer>
 
 <nav class="contactbar" id="contactbar" aria-label="Contact" hidden>
-  <a class="btn primary" id="cbText" href="#">Text us</a>
-  <a class="btn" id="cbCall" href="#">Call</a>
+  <a class="btn primary" id="cbEmail" href="#">Email us</a>
 </nav>
 
 <!-- Item detail (public) -->
@@ -254,7 +262,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     <div class="dlg-body">
       <label class="field"><span>Page title</span><input type="text" id="sTitle" maxlength="70" placeholder="House sale on Geronimo Drive"></label>
       <label class="field"><span>Short intro</span><textarea id="sIntro" maxlength="400" placeholder="We're selling furniture, appliances and more ahead of selling the house. First come, first served."></textarea></label>
-      <label class="field"><span>Phone for calls and texts</span><input type="tel" id="sPhone" placeholder="304-555-0123"><small>Shown on the page so buyers can tap to call or text.</small></label>
+      <label class="field"><span>Email for questions</span><input type="email" id="sEmail" autocapitalize="off" placeholder="geronimosale@gmail.com"><small>Shown on the page so buyers can email you. No phone number is shown anywhere.</small></label>
       <label class="field"><span>Pickup details</span><textarea id="sPickup" placeholder="Saturdays 9–2 or by appointment. Buyer loads and hauls. Text first."></textarea></label>
       <label class="field"><span>Payment</span><input type="text" id="sPay" placeholder="Cash, Venmo, or Zelle"></label>
     </div>
@@ -339,7 +347,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
 
   function normalize(d) {
     d = d && typeof d === "object" ? d : {};
-    d.settings = Object.assign({ title: "", intro: "", phone: "", pickup: "", payment: "", updated: "" }, d.settings || {});
+    d.settings = Object.assign({ title: "", intro: "", email: "", pickup: "", payment: "", updated: "" }, d.settings || {});
     d.items = Array.isArray(d.items) ? d.items : [];
     return d;
   }
@@ -392,8 +400,9 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     if (hasPrice(it)) return it.offer ? money(it.price) + " or best offer" : money(it.price);
     return "Make an offer";
   }
-  const telHref = (p) => "tel:" + p.replace(/[^\d+]/g, "");
-  const smsHref = (p, body) => "sms:" + p.replace(/[^\d+]/g, "") + (body ? "?&body=" + encodeURIComponent(body) : "");
+  const mailHref = (to, subject, body) =>
+    "mailto:" + encodeURIComponent(to).replace(/%40/g, "@") +
+    "?subject=" + encodeURIComponent(subject) + (body ? "&body=" + encodeURIComponent(body) : "");
   const statusLabel = { available: "Available", pending: "Pending pickup", sold: "Sold" };
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -409,7 +418,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     const facts = [];
     if (s.pickup) facts.push(["Pickup", s.pickup]);
     if (s.payment) facts.push(["Payment", s.payment]);
-    if (s.phone) facts.push(["Questions? Call or text", s.phone]);
+    if (s.email) facts.push(["Questions? Email", s.email]);
     $("facts").innerHTML = facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
     $("facts").hidden = !facts.length;
 
@@ -443,6 +452,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
             ${it.photos && it.photos[0] ? `<img src="${it.photos[0]}" alt="" loading="lazy">` : `<span class="none">No photo</span>`}
             ${it.status !== "sold" ? `<span class="tag">${esc(tagText(it))}</span>` : ""}
             ${it.status === "pending" ? `<span class="pill">Pending pickup</span>` : ""}
+            ${it.photos && it.photos.length > 1 && it.status !== "sold" ? `<span class="count-badge">${it.photos.length} photos</span>` : ""}
             ${it.status === "sold" ? `<span class="stamp"><span>SOLD</span></span>` : ""}
           </span>
           <span class="body">
@@ -454,10 +464,9 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     }
 
     const cb = $("contactbar");
-    if (s.phone && !editing) {
+    if (s.email && !editing) {
       cb.hidden = false;
-      $("cbText").href = smsHref(s.phone, `Hi, I saw your sale page (${title}). `);
-      $("cbCall").href = telHref(s.phone);
+      $("cbEmail").href = mailHref(s.email, `Question about ${title}`, "Hi, I saw your sale page and have a question:\n\n");
     } else cb.hidden = true;
 
     $("updated").textContent = s.updated
@@ -493,20 +502,51 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     const photos = it.photos || [];
     let html = "";
     if (photos.length) {
-      html += `<div class="gallery">${photos.map((p, i) => `<img src="${p}" alt="${esc(it.title)}, photo ${i + 1} of ${photos.length}">`).join("")}</div>`;
-      if (photos.length > 1) html += `<p class="swipe">${photos.length} photos. Swipe to see more.</p>`;
+      const many = photos.length > 1;
+      html += `<div class="gwrap"><div class="gallery" id="gal">${photos.map((p, i) => `<img src="${p}" alt="${esc(it.title)}, photo ${i + 1} of ${photos.length}">`).join("")}</div>
+        ${many ? `<button type="button" class="gnav prev" aria-label="Previous photo">‹</button><button type="button" class="gnav next" aria-label="Next photo">›</button>` : ""}</div>`;
+      if (many) {
+        html += `<p class="swipe" id="gcount" aria-live="polite">Photo 1 of ${photos.length}</p>`;
+        html += `<div class="gthumbs">${photos.map((p, i) => `<button type="button" data-g="${i}" aria-label="Show photo ${i + 1}" aria-current="${i === 0}"><img src="${p}" alt=""></button>`).join("")}</div>`;
+      }
     }
     html += `<p class="detail-price">${esc(priceText(it))}</p>`;
     html += `<div class="detail-status ${esc(it.status)}">${esc(statusLabel[it.status])}</div>`;
     if (it.desc) html += `<p class="detail-desc">${esc(it.desc)}</p>`;
-    if (s.phone && it.status !== "sold") {
+    if (s.email && it.status !== "sold") {
       html += `<div class="detail-actions">
-        <a class="btn primary" href="${esc(smsHref(s.phone, `Hi, is the "${it.title}" still available? `))}">Text about this item</a>
-        <a class="btn" href="${esc(telHref(s.phone))}">Call</a></div>`;
+        <a class="btn primary" href="${esc(mailHref(s.email, `Is the ${it.title} still available?`, `Hi, I'm interested in the ${it.title} (${priceText(it)}). Is it still available?\n\n`))}">Email about this item</a></div>
+        <p class="swipe">Or email ${esc(s.email)}</p>`;
     }
     $("ddBody").innerHTML = html;
     $("dDetail").showModal();
     $("ddBody").scrollTop = 0;
+    $("dDetail").onkeydown = null;
+    if (photos.length > 1) setupGallery(photos.length);
+  }
+
+  function setupGallery(n) {
+    const gal = $("gal"), body = $("ddBody");
+    const prev = body.querySelector(".gnav.prev"), next = body.querySelector(".gnav.next");
+    const thumbs = [...body.querySelectorAll(".gthumbs button")];
+    let cur = 0;
+    const go = (i) => { i = Math.max(0, Math.min(n - 1, i)); gal.scrollLeft = i * gal.clientWidth; };
+    const update = () => {
+      const i = Math.round(gal.scrollLeft / Math.max(1, gal.clientWidth));
+      cur = i;
+      $("gcount").textContent = `Photo ${i + 1} of ${n}`;
+      prev.disabled = i === 0; next.disabled = i === n - 1;
+      thumbs.forEach((t, k) => t.setAttribute("aria-current", String(k === i)));
+    };
+    prev.addEventListener("click", () => go(cur - 1));
+    next.addEventListener("click", () => go(cur + 1));
+    thumbs.forEach((t, k) => t.addEventListener("click", () => go(k)));
+    gal.addEventListener("scroll", () => { clearTimeout(gal._t); gal._t = setTimeout(update, 60); });
+    $("dDetail").onkeydown = (e) => {
+      if (e.key === "ArrowLeft") { e.preventDefault(); go(cur - 1); }
+      if (e.key === "ArrowRight") { e.preventDefault(); go(cur + 1); }
+    };
+    update();
   }
 
   // ---------- Editor ----------
@@ -615,14 +655,14 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
 
   $("bInfo").addEventListener("click", () => {
     const s = data.settings;
-    $("sTitle").value = s.title; $("sIntro").value = s.intro; $("sPhone").value = s.phone;
+    $("sTitle").value = s.title; $("sIntro").value = s.intro; $("sEmail").value = s.email;
     $("sPickup").value = s.pickup; $("sPay").value = s.payment;
     $("dInfo").showModal();
   });
   $("fInfo").addEventListener("submit", (e) => {
     e.preventDefault();
     Object.assign(data.settings, {
-      title: $("sTitle").value.trim(), intro: $("sIntro").value.trim(), phone: $("sPhone").value.trim(),
+      title: $("sTitle").value.trim(), intro: $("sIntro").value.trim(), email: $("sEmail").value.trim(),
       pickup: $("sPickup").value.trim(), payment: $("sPay").value.trim(),
     });
     $("dInfo").close();
@@ -687,7 +727,7 @@ footer.foot{color:var(--muted);font-size:.85rem;padding:0 0 120px}
     const s = data.settings;
     $("psTitle").textContent = s.title || "Items for sale";
     drawQR($("psQR"), url, 600);
-    $("psCall").textContent = s.phone ? "Call or text " + s.phone : "";
+    $("psCall").textContent = s.email ? "Questions? " + s.email : "";
     $("psUrl").textContent = url;
     $("dQR").close();
     setTimeout(() => window.print(), 250);
